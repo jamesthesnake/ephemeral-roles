@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ewohltman/ephemeral-roles/pkg/storage"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/ewohltman/ephemeral-roles/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
@@ -44,6 +46,14 @@ var (
 	}
 )
 
+type incomingMessage struct {
+	s      *discordgo.Session
+	m      *discordgo.MessageCreate
+	c      *discordgo.Channel
+	g      *discordgo.Guild
+	tokens []string
+}
+
 // MessageCreate is the callback function for the MessageCreate event from Discord
 func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Increment the total number of MessageCreate events
@@ -60,8 +70,8 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// [BOT_KEYWORD] [command] [options] :: "!eph" "log_level" "debug"
-	contentTokens := strings.Split(strings.TrimSpace(m.Content), " ")
-	if len(contentTokens) < 2 {
+	tokens := strings.Split(strings.TrimSpace(m.Content), " ")
+	if len(tokens) < 2 {
 		return
 	}
 
@@ -79,26 +89,40 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	parseMessage(
+		&incomingMessage{
+			s:      s,
+			m:      m,
+			c:      c,
+			g:      g,
+			tokens: tokens,
+		},
+	)
+}
+
+func parseMessage(message *incomingMessage) {
 	logFields := logrus.Fields{
-		"author":        m.Author.Username,
-		"content":       m.Content,
-		"contentTokens": contentTokens,
-		"channel":       c.Name,
-		"guild":         g.Name,
+		"author":  message.m.Author.Username,
+		"content": message.m.Content,
+		"channel": message.c.Name,
+		"guild":   message.g.Name,
+		"tokens":  message.tokens,
 	}
 
 	log.WithFields(logFields).Debugf("New message")
 
-	switch strings.ToLower(contentTokens[1]) {
+	switch strings.ToLower(message.tokens[1]) {
 	case "info":
-		_, err := s.ChannelMessageSendEmbed(m.ChannelID, infoMessage)
+		_, err := message.s.ChannelMessageSendEmbed(message.m.ChannelID, infoMessage)
 		if err != nil {
 			log.WithError(err).Debugf("Unable to send message")
 			return
 		}
+	case "config":
+		parseServerConfig(message.g.Name, message.tokens[2:])
 	case "log_level":
-		if len(contentTokens) >= 3 {
-			levelOpt := strings.ToLower(contentTokens[2])
+		if len(message.tokens) >= 3 {
+			levelOpt := strings.ToLower(message.tokens[2])
 
 			logFields["log_level"] = levelOpt
 
@@ -124,6 +148,17 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	default:
 		// Silently fail for unrecognized command
 	}
+}
+
+func parseServerConfig(name string, options []string) error {
+	// TODO: Implement custom server config parsing
+	config := &storage.ServerConfig{
+		Name: name,
+	}
+
+	storageClient.Store(config)
+
+	return nil
 }
 
 func updateLogLevel(levelOpt string) {

@@ -6,6 +6,9 @@ package callbacks
 import (
 	"os"
 
+	"github.com/ewohltman/ephemeral-roles/pkg/storage"
+	"github.com/ewohltman/ephemeral-roles/pkg/storage/s3"
+
 	"github.com/ewohltman/ephemeral-roles/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -20,7 +23,8 @@ var (
 	// ROLEPREFIX is the prefix to add before ephemeral role names
 	ROLEPREFIX = os.Getenv("ROLE_PREFIX") + " "
 
-	log = logging.Instance()
+	storageClient storage.Client
+	log           = logging.Instance()
 )
 
 func init() {
@@ -37,5 +41,10 @@ func init() {
 	err = prometheus.Register(prometheusMessageCreateCounter)
 	if err != nil {
 		log.WithError(err).Error("Unable to register MessageCreate events metric with Prometheus")
+	}
+
+	storageClient, err = s3.NewClient("ephemeral-roles-server-configs")
+	if err != nil {
+		log.WithError(err).Error("Unable to instantiate a server config storage client")
 	}
 }

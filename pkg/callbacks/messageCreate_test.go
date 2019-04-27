@@ -52,6 +52,8 @@ func TestMessageCreate(t *testing.T) {
 
 	// log_level info
 	sendMessage(BOTKEYWORD + "log_level info")
+
+	// TODO: Test custom server config
 }
 
 func sendBotMessage() {

@@ -1,13 +1,19 @@
 package storage
 
-type Lister interface {
-	List() ([]byte, error)
+// Client is a storage interface to abstract from the system used to implement
+// storage
+type Client interface {
+	List() ([]string, error)
+	Store(config *ServerConfig)
+	Retrieve(server string) *ServerConfig
+	Delete(server string)
 }
 
-type Storer interface {
-	Store(server string, config []byte)
-}
-
-type Retriever interface {
-	Retrieve(server string) []byte
+// ServerConfig is a custom configuration for a Discord server
+type ServerConfig struct {
+	Name                  string          `json:"name"`
+	RolePrefix            string          `json:"rolePrefix"`
+	RoleColor             string          `json:"roleColor"`
+	VoiceChannelWhitelist map[string]bool `json:"voiceChannelWhitelist"`
+	VoiceChannelBlacklist map[string]bool `json:"voiceChannelBlacklist"`
 }

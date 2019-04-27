@@ -2,15 +2,21 @@ package s3
 
 import "testing"
 
+func TestNewClient(t *testing.T) {
+	_, err := NewClient("ephemeral-roles-server-configs")
+	if err != nil {
+		t.Fatalf("Error creating new S3 client: %s", err)
+	}
+}
+
 func TestService_List(t *testing.T) {
-	service := Bucket{
-		Name: "ephemeral-roles-server-configs",
+	s3Client, err := NewClient("ephemeral-roles-server-configs")
+	if err != nil {
+		t.Fatalf("Error creating new S3 client: %s", err)
 	}
 
-	buckets, err := service.List()
+	_, err = s3Client.List()
 	if err != nil {
 		t.Fatalf("Error listing S3 bucket contents: %s", err)
 	}
-
-	t.Logf("Contents: %v", buckets)
 }
