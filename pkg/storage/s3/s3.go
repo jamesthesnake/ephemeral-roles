@@ -5,9 +5,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-type Service struct{}
+type Bucket struct {
+	Name string
+}
 
-func (service *Service) List() ([]string, error) {
+func (bucket *Bucket) List() ([]string, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, err
@@ -15,16 +17,20 @@ func (service *Service) List() ([]string, error) {
 
 	s3Client := s3.New(sess)
 
-	result, err := s3Client.ListBuckets(nil)
+	result, err := s3Client.ListObjects(
+		&s3.ListObjectsInput{
+			Bucket: &bucket.Name,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	buckets := make([]string, 0)
+	items := make([]string, 0)
 
-	for _, bucket := range result.Buckets {
-		buckets = append(buckets, *bucket.Name)
+	for _, item := range result.Contents {
+		items = append(items, *item.Key)
 	}
 
-	return buckets, nil
+	return items, nil
 }

@@ -3,12 +3,14 @@ package s3
 import "testing"
 
 func TestService_List(t *testing.T) {
-	service := Service{}
+	service := Bucket{
+		Name: "ephemeral-roles-server-configs",
+	}
 
 	buckets, err := service.List()
 	if err != nil {
-		t.Fatalf("Error listing S3 buckets: %s", err)
+		t.Fatalf("Error listing S3 bucket contents: %s", err)
 	}
 
-	t.Logf("Buckets: %v", buckets)
+	t.Logf("Contents: %v", buckets)
 }
